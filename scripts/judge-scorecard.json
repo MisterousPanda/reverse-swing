@@ -1,0 +1,41 @@
+{
+  "rubric": {
+    "visuals": "whole pitch visible; bowler visible and not a stick; batter not a stick; stumps look like stumps and fall; lighting/readability; trail/aim markers; sports-game feel",
+    "gameplay": "line/length do something measurable; reverse/conventional still works; batter tries to play; bowled/lbw/beaten happen for the right reasons; challenges still make sense",
+    "controls": "sliders AND keyboard change line/length/pace/wrist and the on-pitch marker moves immediately; bowl/pause/replay still work; player can see what they aimed vs what happened"
+  },
+  "proof": {
+    "yorker_middle": { "aim_x": 0.02, "aim_y": 19.57, "bounce_x": 0.021, "bounce_y": 19.581, "outcome": "bowled" },
+    "short_wide": { "aim_x": 0.42, "aim_y": 10.92, "bounce_x": 0.42, "bounce_y": 10.927, "outcome": "defended" },
+    "full_leg": { "aim_x": -0.3, "aim_y": 17.52, "bounce_x": -0.3, "bounce_y": 17.545, "outcome": "beaten" }
+  },
+  "learned_from": [
+    "Cricket 24 / Big Ant — broadcast / bowler's-end camera that shows the whole wicket",
+    "Don Bradman Cricket — length buttons (yorker/full/good/short), coloured pitch marker, Big Eye",
+    "WCC / Real Cricket — on-pitch landing grid and sports HUD",
+    "Super Over / arcade titles — readable arcade bodies, umpire call splash"
+  ],
+  "loops": [
+    {
+      "n": 1,
+      "visuals": 4,
+      "gameplay": 7,
+      "controls": 6,
+      "notes": "First client rewrite. Physics line/length fixed, but camera sat too high: pitch was a postage stamp and players shrank to blobs. Aim marker hard to see."
+    },
+    {
+      "n": 2,
+      "visuals": 6,
+      "gameplay": 7,
+      "controls": 7,
+      "notes": "Dropped the camera behind the bowler. Whole pitch and length map readable. Bowler still cropped at the waist; figures still too abstract."
+    },
+    {
+      "n": 3,
+      "visuals": 7,
+      "gameplay": 8,
+      "controls": 8,
+      "notes": "Reframed so bowler, umpire, full pitch and batter sit in one shot. Stumps smash on bowled with BOWLED call. Short-wide defends, full-leg is beaten by late reverse. Chips + sliders + hawk-eye show aimed vs pitched. Three-ball proof matches to ~1cm."
+    }
+  ]
+}

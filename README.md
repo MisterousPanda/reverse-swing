@@ -2,7 +2,7 @@
 
 A bowling studio for the delivery Pakistani fast bowlers turned into a weapon: the old ball that goes the **wrong way**.
 
-The aerodynamics live in Rust. The client is a tiny Unity-inspired game engine — scene objects, a PlayerLoop, fixed-timestep playback, interpolated rigidbodies, trails, bounce dust, and a delivery timeline.
+The aerodynamics live in Rust. The client is a bowling game: bowler's-end camera, a length map on the pitch, a run-up, a batsman who tries to play, and stumps that fall.
 
 ## The science (and who invented the art)
 
@@ -39,8 +39,9 @@ T              replay last ball
 
 - `crates/physics` — Mehta/Scobie swing classification and trajectory integration
 - `crates/server` — Axum API (`/api/bowl`, `/api/preview`, `/api/challenges`, `/api/lore`) plus the studio
-- `web/js/engine.js` — PlayerLoop, Time, GameObject/components, Camera, Rigidbody interpolation, colliders, TrailRenderer, ParticleSystem, Input, Timeline
-- `web/js/game.js` — pitch, ball motor, challenges, bowling studio
+- `web/js/engine.js` — PlayerLoop, look-at camera, rigidbodies, trails, particles, input
+- `web/js/render.js` — pitch, length map, players, stump smash, hawk-eye
+- `web/js/game.js` — bowling studio, batter AI, challenges, delivery chips
 
 ## Challenges
 

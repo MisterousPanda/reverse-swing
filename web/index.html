@@ -7,28 +7,55 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <header class="top">
-      <div>
-        <p class="eyebrow">Karachi dusk · old ball</p>
-        <h1>Reverse Swing</h1>
+
+    <header class="scorebug">
+      <div class="brand">
+        <span class="live">LIVE</span>
+        <div>
+          <h1>Reverse Swing</h1>
+          <p>Gaddafi dusk · old ball · Pakistan pace</p>
+        </div>
       </div>
-      <div class="spellbox">
-        <span id="spell">0/0  ·  0 pts</span>
-        <span id="clock">1.00×</span>
+      <div class="bug-stats">
+        <div>
+          <label>SPELL</label>
+          <b id="spell">0–0</b>
+        </div>
+        <div>
+          <label>PTS</label>
+          <b id="pts">0</b>
+        </div>
+        <div>
+          <label>PACE</label>
+          <b id="bug-pace">144</b><small>kph</small>
+        </div>
+        <div>
+          <label>REGIME</label>
+          <b id="regime" data-kind="reverse">REVERSE</b>
+        </div>
+        <div>
+          <label>CLOCK</label>
+          <b id="clock">1.00×</b>
+        </div>
       </div>
     </header>
 
-    <main class="studio">
-      <section class="panel ball-lab">
-        <h2>Ball lab</h2>
+    <main class="match">
+      <aside class="card ball-card">
+        <h2>The ball</h2>
         <div id="ball-viz" class="ball-viz" data-side="off" aria-hidden="true"></div>
+        <div class="chips" id="ball-presets">
+          <button type="button" data-preset="new">New</button>
+          <button type="button" data-preset="karachi" class="on">Karachi 42</button>
+          <button type="button" data-preset="contrast">Contrast</button>
+        </div>
         <label>
           Overs of wear
           <span id="overs-out">42 ov</span>
@@ -45,23 +72,21 @@
           <input id="shine" type="range" min="0" max="1" step="0.01" value="0.84" />
         </label>
         <label>
-          Rough hemisphere
+          Rough face
           <select id="rough-side">
             <option value="off" selected>Off side</option>
             <option value="leg">Leg side</option>
           </select>
         </label>
-        <div class="presets">
-          <button type="button" data-preset="new">New ball</button>
-          <button type="button" data-preset="karachi">Karachi 42</button>
-          <button type="button" data-preset="contrast">Contrast</button>
-        </div>
-      </section>
+      </aside>
 
-      <section class="stage-wrap">
+      <section class="ground">
         <canvas id="stage" tabindex="0"></canvas>
+        <div id="call" class="call" hidden>
+          <em id="call-kind">BOWLED</em>
+          <span id="call-sub">middle stump</span>
+        </div>
         <div class="aero-bar">
-          <b id="regime" data-kind="reverse">reverse</b>
           <span id="re">—</span>
           <span id="mph">—</span>
           <span id="onset">—</span>
@@ -69,15 +94,32 @@
           <span id="sep">—</span>
           <span id="dev">—</span>
         </div>
-        <p id="copy" class="copy">Polish one face. Let the other scuff. Bowl through the old ball.</p>
-        <div class="result-row">
-          <span id="outcome">ready</span>
-          <span id="score">+0</span>
+        <p id="copy" class="copy">Pick a length on the pitch. The old ball should finish the other way.</p>
+        <div class="transport">
+          <button id="bowl" type="button">BOWL</button>
+          <button id="pause" type="button">Pause</button>
+          <button id="replay-btn" type="button">Replay</button>
+          <div id="replay-wrap" hidden>
+            <input id="replay" type="range" min="0" max="1" step="0.01" value="1" />
+          </div>
         </div>
       </section>
 
-      <section class="panel release">
-        <h2>Release</h2>
+      <aside class="card bowl-card">
+        <h2>Delivery</h2>
+        <p class="hint">Line is off / middle / leg. Length is the bounce you can see.</p>
+        <div class="chips" id="length-chips">
+          <button type="button" data-length="0.55">Yorker</button>
+          <button type="button" data-length="2.6">Full</button>
+          <button type="button" data-length="5.8">Good</button>
+          <button type="button" data-length="9.2">Short</button>
+        </div>
+        <div class="chips" id="line-chips">
+          <button type="button" data-line="-0.30">Leg</button>
+          <button type="button" data-line="0.02">Middle</button>
+          <button type="button" data-line="0.16">Off</button>
+          <button type="button" data-line="0.42">Wide</button>
+        </div>
         <label>
           Pace
           <span id="pace-out">144 kph</span>
@@ -89,17 +131,17 @@
           <input id="line" type="range" min="-0.7" max="0.7" step="0.01" value="0.16" />
         </label>
         <label>
-          Length (short of stumps)
+          Length
           <span id="length-out">yorker 0.7m</span>
           <input id="length" type="range" min="0.2" max="12" step="0.05" value="0.7" />
         </label>
         <label>
-          Wrist / seam angle
+          Wrist / seam
           <span id="seam-out">18°</span>
           <input id="seam" type="range" min="-32" max="32" step="1" value="18" />
         </label>
         <label>
-          Wrist behind the ball
+          Wrist behind
           <span id="wrist-out">0.86</span>
           <input id="wrist" type="range" min="0" max="1" step="0.01" value="0.86" />
         </label>
@@ -108,24 +150,18 @@
           <span id="upright-out">0.88</span>
           <input id="upright" type="range" min="0" max="1" step="0.01" value="0.88" />
         </label>
-        <div class="actions">
-          <button id="bowl" type="button">Bowl</button>
-          <button id="pause" type="button">Pause</button>
-          <button id="replay-btn" type="button">Replay</button>
-        </div>
-        <div id="replay-wrap" hidden>
-          <label>
-            Timeline
-            <input id="replay" type="range" min="0" max="1" step="0.01" value="1" />
-          </label>
-        </div>
         <p class="keys">
-          Space bowl · Q/E wrist · R/F pace · arrows line/length · P pause · T replay · 1 2 3 time
+          Space bowl · arrows line/length · Q/E wrist · R/F pace · P pause · T replay
         </p>
-      </section>
+      </aside>
     </main>
 
     <section class="lower">
+      <div class="hawk-card">
+        <h2>Hawk-Eye</h2>
+        <canvas id="hawkeye" width="240" height="300"></canvas>
+        <p id="proof" class="proof">Aim the reticle. Bowl. The pitch mark must move.</p>
+      </div>
       <div>
         <h2>Challenges</h2>
         <div id="challenges" class="challenges"></div>
@@ -138,6 +174,7 @@
     </section>
 
     <script src="/js/engine.js"></script>
+    <script src="/js/render.js"></script>
     <script src="/js/game.js"></script>
   </body>
 </html>

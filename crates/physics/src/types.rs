@@ -29,6 +29,7 @@ pub enum Outcome {
     Lbw,
     Beaten,
     Defended,
+    Edged,
     Left,
     Wide,
 }
@@ -127,6 +128,12 @@ pub struct BowlResult {
     pub wickets: bool,
     pub wide: bool,
     pub score: i32,
+    /// Line the RHB committed to after reading the early hoop.
+    #[serde(default)]
+    pub batter_commit_x: f64,
+    /// Front-foot plant toward the pitch of the ball.
+    #[serde(default)]
+    pub batter_foot_y: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]

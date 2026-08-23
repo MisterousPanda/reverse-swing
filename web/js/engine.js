@@ -1,10 +1,10 @@
 /**
- * A tiny Unity-inspired runtime: PlayerLoop, Time, GameObjects,
- * components, camera, rigidbodies, trails, particles, input, timeline.
- * Built so a cricket ball can be bowled and watched, not as a generic demo.
+ * Tiny Unity-inspired runtime for the bowling studio.
+ * Camera is a real look-at projection so the whole pitch fits in frame.
  */
 (function (global) {
   const TAU = Math.PI * 2;
+  const PITCH = 20.12;
 
   class Vector3 {
     constructor(x = 0, y = 0, z = 0) {
@@ -30,6 +30,12 @@
       this.z += v.z;
       return this;
     }
+    sub(v) {
+      this.x -= v.x;
+      this.y -= v.y;
+      this.z -= v.z;
+      return this;
+    }
     scale(s) {
       this.x *= s;
       this.y *= s;
@@ -44,6 +50,23 @@
     }
     length() {
       return Math.hypot(this.x, this.y, this.z);
+    }
+    normalize() {
+      const L = this.length() || 1;
+      return this.scale(1 / L);
+    }
+    normalized() {
+      return this.clone().normalize();
+    }
+    dot(v) {
+      return this.x * v.x + this.y * v.y + this.z * v.z;
+    }
+    cross(v) {
+      return new Vector3(
+        this.y * v.z - this.z * v.y,
+        this.z * v.x - this.x * v.z,
+        this.x * v.y - this.y * v.x
+      );
     }
   }
 
@@ -156,30 +179,49 @@
   class Camera extends Component {
     constructor() {
       super();
-      this.fov = 38;
-      this.near = 0.4;
-      this.lookTarget = new Vector3(0, 16.4, 0.4);
-      this.eye = new Vector3(0.15, -7.6, 3.9);
+      this.fov = 34;
+      this.near = 0.6;
+      this.lookTarget = new Vector3(0, 9.4, 0.35);
+      this.eye = new Vector3(3.15, -13.8, 8.6);
       this.viewport = { width: 800, height: 480 };
+      this._right = new Vector3(1, 0, 0);
+      this._up = new Vector3(0, 0, 1);
+      this._forward = new Vector3(0, 1, 0);
     }
     lookAt(x, y, z) {
       this.lookTarget.set(x, y, z);
     }
+    rebuildBasis() {
+      const f = new Vector3(
+        this.lookTarget.x - this.eye.x,
+        this.lookTarget.y - this.eye.y,
+        this.lookTarget.z - this.eye.z
+      ).normalize();
+      const worldUp = new Vector3(0, 0, 1);
+      let right = f.cross(worldUp);
+      if (right.length() < 1e-5) right = new Vector3(1, 0, 0);
+      else right.normalize();
+      const up = right.cross(f).normalize();
+      this._forward = f;
+      this._right = right;
+      this._up = up;
+    }
     worldToScreen(x, y, z) {
-      const eye = this.eye;
-      const fx = x - eye.x;
-      const fy = y - eye.y;
-      const fz = z - eye.z;
-      const depth = fy;
-      if (depth < this.near) return { x: -999, y: -999, depth, scale: 0 };
-      const focal =
-        (0.5 * this.viewport.height) / Math.tan((this.fov * Math.PI) / 360);
-      const scale = focal / depth;
+      const relx = x - this.eye.x;
+      const rely = y - this.eye.y;
+      const relz = z - this.eye.z;
+      const cx = relx * this._right.x + rely * this._right.y + relz * this._right.z;
+      const cy = relx * this._up.x + rely * this._up.y + relz * this._up.z;
+      const cz = relx * this._forward.x + rely * this._forward.y + relz * this._forward.z;
+      if (cz < this.near) return { x: -999, y: -999, depth: cz, scale: 0, visible: false };
+      const focal = (0.5 * this.viewport.height) / Math.tan((this.fov * Math.PI) / 360);
+      const scale = focal / cz;
       return {
-        x: this.viewport.width * 0.5 + fx * scale * 1.12,
-        y: this.viewport.height * 0.62 - fz * scale,
-        depth,
+        x: this.viewport.width * 0.5 + cx * scale,
+        y: this.viewport.height * 0.42 - cy * scale,
+        depth: cz,
         scale,
+        visible: true,
       };
     }
   }
@@ -268,16 +310,17 @@
   }
 
   class Particle {
-    constructor(x, y, z) {
+    constructor(x, y, z, kind = "dust") {
       this.x = x;
       this.y = y;
       this.z = z;
-      this.vx = (Math.random() - 0.5) * 2.4;
-      this.vy = (Math.random() - 0.5) * 1.2;
-      this.vz = 1.4 + Math.random() * 2.2;
-      this.life = 0.45 + Math.random() * 0.35;
+      this.kind = kind;
+      this.vx = (Math.random() - 0.5) * (kind === "wood" ? 3.8 : 2.4);
+      this.vy = (Math.random() - 0.5) * (kind === "wood" ? 2.4 : 1.2);
+      this.vz = (kind === "wood" ? 2.6 : 1.4) + Math.random() * 2.4;
+      this.life = 0.45 + Math.random() * 0.45;
       this.age = 0;
-      this.size = 1.6 + Math.random() * 2.4;
+      this.size = kind === "wood" ? 2.2 + Math.random() * 2.4 : 1.6 + Math.random() * 2.4;
     }
   }
 
@@ -287,9 +330,9 @@
       this.particles = [];
       this.emitting = false;
     }
-    emit(count, origin) {
+    emit(count, origin, kind = "dust") {
       for (let i = 0; i < count; i += 1) {
-        this.particles.push(new Particle(origin.x, origin.y, origin.z));
+        this.particles.push(new Particle(origin.x, origin.y, origin.z, kind));
       }
     }
     update(dt) {
@@ -300,7 +343,7 @@
         p.y += p.vy * dt;
         p.z += p.vz * dt;
       }
-      this.particles = this.particles.filter((p) => p.age < p.life && p.z > 0);
+      this.particles = this.particles.filter((p) => p.age < p.life && p.z > -0.2);
     }
   }
 
@@ -312,8 +355,8 @@
       this.pointer = { x: 0, y: 0, down: false, dx: 0, dy: 0 };
       this.actions = {
         Bowl: ["Space", "Enter"],
-        WristIn: ["KeyQ", "KeyA"],
-        WristOut: ["KeyE", "KeyD"],
+        WristIn: ["KeyQ"],
+        WristOut: ["KeyE"],
         PaceUp: ["KeyR", "Equal"],
         PaceDown: ["KeyF", "Minus"],
         LineIn: ["ArrowLeft"],
@@ -522,5 +565,6 @@
     Timeline,
     PlayerLoop,
     TAU,
+    PITCH,
   };
 })(window);
