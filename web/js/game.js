@@ -44,6 +44,7 @@
     lore: [],
     bowling: false,
     releasing: false,
+    holdClimax: false,
     spell: { balls: 0, wickets: 0, runs: 0 },
     unlocked: new Set(),
     proof: [],
@@ -160,40 +161,43 @@
       this.smashed = true;
       const dir = impactX >= 0 ? 1 : -1;
       this.posts.forEach((p, i) => {
-        const near = 1.2 - Math.abs(p.x - impactX) * 4;
-        p.vx = (0.6 + Math.random() * 1.4) * dir * near;
-        p.vy = 0.4 + Math.random() * 1.1;
-        p.vz = 1.8 + Math.random() * 2.2 + (i === 1 ? 0.8 : 0);
+        const near = 1.35 - Math.abs(p.x - impactX) * 5;
+        p.vx = (0.9 + Math.random() * 1.8) * dir * near;
+        p.vy = 0.6 + Math.random() * 1.4;
+        p.vz = 2.4 + Math.random() * 2.6 + (i === 1 ? 1.1 : 0);
+        p.spin = (Math.random() - 0.5) * 8;
       });
       this.bails.forEach((b) => {
-        b.vx = (Math.random() - 0.4) * 2.8;
-        b.vy = 0.8 + Math.random();
-        b.vz = 2.4 + Math.random() * 2.2;
+        b.vx = (Math.random() - 0.35) * 3.4;
+        b.vy = 1.1 + Math.random() * 1.2;
+        b.vz = 3.2 + Math.random() * 2.4;
+        b.spin = (Math.random() - 0.5) * 10;
       });
       void speed;
     }
     update(dt) {
       if (!this.smashed) return;
       for (const p of this.posts) {
-        p.vz -= 11 * dt;
+        p.vz -= 12 * dt;
         p.ox += p.vx * dt;
         p.oy += p.vy * dt;
         p.oz += p.vz * dt;
-        p.leanX += p.vx * dt * 0.8;
-        p.leanY += p.vy * dt * 0.4;
+        p.leanX += (p.vx + (p.spin || 0)) * dt * 0.55;
+        p.leanY += p.vy * dt * 0.45;
         if (p.oz < -0.2) {
           p.oz = -0.2;
-          p.vz *= -0.15;
+          p.vz *= -0.12;
         }
       }
       for (const b of this.bails) {
-        b.vz -= 12 * dt;
+        b.vz -= 13 * dt;
         b.ox += b.vx * dt;
         b.oy += b.vy * dt;
         b.z += b.vz * dt;
+        b.spin = (b.spin || 0) + dt * 6;
         if (b.z < 0.03) {
           b.z = 0.03;
-          b.vz *= -0.2;
+          b.vz *= -0.18;
         }
       }
     }
@@ -208,27 +212,36 @@
     reset() {
       this.phase = "mark";
       this.x = 0.22;
-      this.y = -6.4;
+      this.y = -6.2;
       this.t = 0;
+      this.cycle = 0;
       this.hasBall = true;
     }
     startSpell() {
       this.phase = "run";
       this.t = 0;
-      this.y = -7.2;
+      this.cycle = 0;
+      this.y = -7.6;
       this.hasBall = true;
     }
     update(dt) {
+      this.cycle += dt * (this.phase === "run" ? 15.5 : 5);
       if (this.phase === "run") {
-        this.y += 10.4 * dt;
+        this.y += 9.6 * dt;
         this.t += dt;
-        if (this.y >= -0.28) {
+        if (this.y >= -0.38) {
           this.phase = "gather";
           this.t = 0;
         }
       } else if (this.phase === "gather") {
         this.t += dt;
-        if (this.t > 0.2) {
+        if (this.t > 0.16) {
+          this.phase = "load";
+          this.t = 0;
+        }
+      } else if (this.phase === "load") {
+        this.t += dt;
+        if (this.t > 0.14) {
           this.phase = "release";
           this.hasBall = false;
           this.onRelease?.();
@@ -236,10 +249,11 @@
         }
       } else if (this.phase === "release") {
         this.t += dt;
-        this.y += 2.6 * dt;
-        if (this.t > 0.14) this.phase = "follow";
+        this.y += 2.4 * dt;
+        if (this.t > 0.15) this.phase = "follow";
       } else if (this.phase === "follow") {
-        this.y += 1.2 * dt;
+        this.y += 1.15 * dt;
+        this.t += dt;
       }
     }
   }
@@ -260,6 +274,9 @@
       this.weight = 0;
       this.headTurn = 0;
       this.outcome = null;
+      this.padFlash = 0;
+      this.tap = 0;
+      this.swing = 0;
     }
     prepare(result) {
       this.commitX = result.batter_commit_x ?? 0.18;
@@ -268,30 +285,53 @@
       this.phase = "ready";
       this.weight = 0;
       this.headTurn = 0;
+      this.padFlash = 0;
+      this.swing = 0;
     }
     track(ball) {
+      this.tap += 0.05;
+      this.padFlash = Math.max(0, this.padFlash - 0.035);
       if (this.phase === "stance" || !ball) {
         this.x += (0.18 - this.x) * 0.04;
-        this.batAngle += (-0.55 - this.batAngle) * 0.08;
+        this.batAngle += (-0.58 + Math.sin(this.tap) * 0.05 - this.batAngle) * 0.1;
         this.footY += (PITCH - 1.32 - this.footY) * 0.06;
+        this.swing += (0 - this.swing) * 0.12;
         return;
       }
       const by = ball.y;
-      if (by > 8) {
-        this.phase = "stride";
-        this.x += (this.commitX - this.x) * 0.16;
-        this.footY += (this.targetFootY - this.footY) * 0.14;
-        this.weight = Math.min(1, this.weight + 0.06);
-        this.batAngle += (-0.85 - this.batAngle) * 0.12;
+      if (by > 6.2) {
+        this.phase = "backlift";
+        this.x += (this.commitX - this.x) * 0.1;
+        this.batAngle += (-1.12 - this.batAngle) * 0.14;
+        this.swing += (0.15 - this.swing) * 0.1;
       }
-      if (by > 15.2) {
+      if (by > 10) {
+        this.phase = "stride";
+        this.x += (this.commitX - this.x) * 0.18;
+        this.footY += (this.targetFootY - this.footY) * 0.18;
+        this.weight = Math.min(1, this.weight + 0.08);
+      }
+      if (by > 14.6) {
         const miss = ["bowled", "lbw", "beaten", "left", "wide"].includes(this.outcome);
         this.phase = miss ? "play_miss" : "play";
-        this.batAngle += ((miss ? 0.2 : 0.62) - this.batAngle) * 0.24;
-        if (this.outcome === "lbw") this.x += (this.commitX - this.x) * 0.22;
+        this.batAngle += ((miss ? 0.22 : 0.82) - this.batAngle) * 0.3;
+        this.swing += ((miss ? 0.45 : 1) - this.swing) * 0.22;
+        if (this.outcome === "lbw") {
+          this.x += (this.commitX - this.x) * 0.26;
+          if (this.padFlash <= 0) {
+            this.padFlash = 1;
+            window.RSAudio?.play("pad");
+          }
+        }
+        if (this.outcome === "defended" || this.outcome === "edged") {
+          if (this.padFlash <= 0) window.RSAudio?.play("bat");
+          this.padFlash = Math.max(this.padFlash, 0.28);
+        }
       }
-      if (by > PITCH - 0.2 && this.outcome === "bowled") {
-        this.headTurn += (1 - this.headTurn) * 0.18;
+      if (by > PITCH - 0.35) {
+        if (this.phase === "play" || this.phase === "play_miss") this.phase = "follow";
+        this.batAngle += ((this.outcome === "defended" ? 1.05 : 0.38) - this.batAngle) * 0.12;
+        if (this.outcome === "bowled") this.headTurn += (1 - this.headTurn) * 0.22;
       }
     }
   }
@@ -300,10 +340,12 @@
     constructor() {
       super();
       this.x = 0.12;
+      this.react = 0;
     }
     track(ball) {
-      const tx = ball ? ball.x * 0.45 : 0.12;
-      this.x += (tx - this.x) * 0.08;
+      const tx = ball ? ball.x * 0.5 : 0.12;
+      this.x += (tx - this.x) * 0.1;
+      this.react += ((ball ? 1 : 0.15) - this.react) * 0.08;
     }
   }
 
@@ -311,10 +353,64 @@
     constructor() {
       super();
       this.finger = false;
+      this.fingerT = 0;
+    }
+    update(dt) {
+      const goal = this.finger ? 1 : 0;
+      this.fingerT += (goal - this.fingerT) * Math.min(1, dt * 8);
     }
   }
 
-  window.RSPlay = { WicketSet, BowlerActor, BatterBrain, KeeperActor, UmpireActor };
+  class CameraRig extends Component {
+    constructor(camera) {
+      super();
+      this.cam = camera;
+      this.shake = 0;
+      this.impact = 0;
+    }
+    punch(n = 1) {
+      this.shake = Math.max(this.shake, n);
+    }
+    update(dt) {
+      const ball = this.gameObject.scene.findWithTag("Ball");
+      const result = state.lastResult;
+      const flying = state.bowling && state.releasing && ball?.active;
+      let eye = [1.18, -13.35, 4.42];
+      let look = [0.03, 12.55, 0.3];
+      let fov = 41;
+      if (flying && ball) {
+        const y = ball.transform.position.y;
+        eye = [1.08, -13.05 + y * 0.035, 4.28];
+        look = [ball.transform.position.x * 0.22, 12.0 + y * 0.11, 0.34];
+        fov = 39.5;
+      }
+      const wicket = result && (result.outcome === "bowled" || result.outcome === "lbw");
+      if (wicket && (state.releasing || state.holdClimax)) {
+        this.impact = Math.min(1, this.impact + dt * 2.4);
+      } else if (!state.holdClimax) {
+        this.impact = Math.max(0, this.impact - dt * 0.75);
+      }
+      if (this.impact > 0.05) {
+        const u = this.impact;
+        eye = [1.18 + (0.92 - 1.18) * u, -13.35 + (11.8 + 13.35) * u, 4.42 + (2.85 - 4.42) * u];
+        look = [0.03 * (1 - u) + 0.04 * u, 12.55 + (19.85 - 12.55) * u, 0.3 + (0.46 - 0.3) * u];
+        fov = 41 - 6 * u;
+      }
+      const k = this.impact > 0.18 ? 0.2 : 0.085;
+      this.cam.eye.x += (eye[0] - this.cam.eye.x) * k;
+      this.cam.eye.y += (eye[1] - this.cam.eye.y) * k;
+      this.cam.eye.z += (eye[2] - this.cam.eye.z) * k;
+      this.cam.lookTarget.x += (look[0] - this.cam.lookTarget.x) * (k + 0.02);
+      this.cam.lookTarget.y += (look[1] - this.cam.lookTarget.y) * (k + 0.02);
+      this.cam.lookTarget.z += (look[2] - this.cam.lookTarget.z) * (k + 0.02);
+      this.cam.fov += (fov - this.cam.fov) * k;
+      this.shake *= 0.86;
+      this.cam.shakeX = (Math.random() - 0.5) * this.shake * 10;
+      this.cam.shakeY = (Math.random() - 0.5) * this.shake * 7;
+    }
+  }
+
+  window.RSPlay = { WicketSet, BowlerActor, BatterBrain, KeeperActor, UmpireActor, CameraRig };
 
   async function api(path, options) {
     const res = await fetch(`${API}/api${path}`, {
@@ -529,10 +625,12 @@
   async function bowl(loop) {
     state.bowling = true;
     state.releasing = false;
+    state.holdClimax = false;
     Time.paused = false;
     Time.timeScale = 1;
     document.getElementById("call").hidden = true;
     document.getElementById("bowl").classList.add("hot");
+    document.querySelector(".coach")?.classList.add("spent");
     const ball = loop.scene.findWithTag("Ball");
     const trail = ball.getComponent(TrailRenderer);
     const motor = ball.getComponent(TrajectoryMotor);
@@ -564,7 +662,9 @@
       ball.active = true;
       motor.onBounce = (origin) => {
         loop.scene.findWithTag("FX").getComponent(ParticleSystem).emit(16, origin, "dust");
+        window.RSAudio?.play("bounce");
       };
+      window.RSAudio?.play("whoosh");
       motor.onFinish = () => finishBall(loop, result, motor);
       motor.load(result.samples);
       loop.timeline.begin();
@@ -588,13 +688,23 @@
     checkChallenge(result);
     const stumps = loop.scene.findWithTag("Stumps").getComponent(WicketSet);
     const umpire = loop.scene.findWithTag("Umpire").getComponent(UmpireActor);
+    state.holdClimax = true;
     if (result.outcome === "bowled") {
       const pass = result.stump_pass || [0, PITCH, 0.3];
       stumps.smash(pass[0], 8);
       loop.scene.findWithTag("FX").getComponent(ParticleSystem).emit(22, new Vector3(pass[0], PITCH, 0.4), "wood");
       umpire.finger = true;
+      loop.scene.findWithTag("MainCamera")?.getComponent(CameraRig)?.punch(1.4);
+      window.RSAudio?.play("stumps");
+      window.RSAudio?.play("crowd");
     }
-    if (result.outcome === "lbw") umpire.finger = true;
+    if (result.outcome === "lbw") {
+      umpire.finger = true;
+      const pad = result.stump_pass || [0.08, PITCH - 0.9, 0.32];
+      loop.scene.findWithTag("FX").getComponent(ParticleSystem).emit(10, new Vector3(pad[0], PITCH - 0.85, 0.38), "dust");
+      window.RSAudio?.play("crowd");
+    }
+    if (result.outcome === "defended" || result.outcome === "edged") window.RSAudio?.play("bat");
     showCall(result);
   }
 
@@ -652,6 +762,8 @@
       btn.addEventListener("click", () => {
         state.challenge = ch;
         document.getElementById("challenge-blurb").textContent = `${ch.blurb} ${ch.hint}`;
+        const obj = document.getElementById("objective");
+        if (obj) obj.textContent = ch.title;
         renderChallenges();
       });
       root.appendChild(btn);
@@ -693,6 +805,8 @@
     document.getElementById("pause").addEventListener("click", () => {
       Time.paused = !Time.paused;
     });
+    document.getElementById("mute")?.addEventListener("click", () => window.RSAudio?.toggle());
+    document.getElementById("bowl").addEventListener("pointerdown", () => window.RSAudio?.unlock());
     document.querySelectorAll("[data-preset]").forEach((btn) => {
       btn.addEventListener("click", () => {
         document.querySelectorAll("[data-preset]").forEach((b) => b.classList.remove("on"));
@@ -751,9 +865,10 @@
 
     const camObj = new GameObject("Main Camera", { tag: "MainCamera" });
     const camera = camObj.addComponent(new Camera());
-    camera.eye.set(1.35, -12.6, 4.15);
-    camera.lookAt(0.05, 13.4, 0.2);
-    camera.fov = 44;
+    camera.eye.set(1.18, -13.35, 4.42);
+    camera.lookAt(0.03, 12.55, 0.3);
+    camera.fov = 41;
+    camObj.addComponent(new CameraRig(camera));
     scene.add(camObj);
 
     const pitch = new GameObject("Pitch", { tag: "Pitch", layer: Layers.Pitch });
@@ -815,6 +930,9 @@
           if (!wk.smashed) {
             wk.smash(bpos.x, 8);
             fx.getComponent(ParticleSystem).emit(18, new Vector3(bpos.x, PITCH, 0.4), "wood");
+            camObj.getComponent(CameraRig)?.punch(1.5);
+            renderer.punch(1);
+            window.RSAudio?.play("stumps");
           }
         }
         renderer.draw(alpha);
@@ -845,7 +963,16 @@
 
     const params = new URLSearchParams(location.search);
     const demo = params.get("demo");
-    if (demo === "yorker") {
+      if (demo === "lbw") {
+      applyPreset("karachi");
+      state.delivery.line_m = 0.16;
+      state.delivery.length_m = 3.2;
+      state.delivery.pace_kph = 146;
+      syncSlider("line", 0.16);
+      syncSlider("length", 3.2);
+      syncSlider("pace", 146);
+      setTimeout(() => bowl(loop), 280);
+    } else if (demo === "yorker") {
       applyPreset("karachi");
       state.delivery.line_m = 0.02;
       state.delivery.length_m = 0.55;
@@ -884,8 +1011,11 @@
         const batter = loop.scene.findWithTag("Batter").getComponent(BatterBrain);
         batter.x = result.batter_commit_x;
         batter.footY = result.batter_foot_y;
-        batter.batAngle = ["bowled", "lbw", "beaten"].includes(result.outcome) ? 0.2 : 0.55;
+        batter.batAngle = ["bowled", "lbw", "beaten"].includes(result.outcome) ? 0.22 : 0.82;
         batter.weight = 1;
+        batter.swing = ["bowled", "lbw", "beaten"].includes(result.outcome) ? 0.45 : 1;
+        batter.phase = "follow";
+        if (result.outcome === "lbw") batter.padFlash = 1;
         if (result.outcome === "bowled") {
           batter.headTurn = 1;
           loop.scene.findWithTag("Stumps").getComponent(WicketSet).smash(result.stump_pass?.[0] || 0, 10);
@@ -897,6 +1027,10 @@
         loop.scene.findWithTag("Bowler").getComponent(BowlerActor).phase = "follow";
         loop.scene.findWithTag("Bowler").getComponent(BowlerActor).y = 1.1;
         loop.scene.findWithTag("Bowler").getComponent(BowlerActor).hasBall = false;
+        state.holdClimax = true;
+        state.releasing = true;
+        document.querySelector(".coach")?.classList.add("spent");
+        loop.scene.findWithTag("MainCamera").getComponent(CameraRig).impact = 1;
         recordProof(result);
         showCall(result);
         paintTelemetry(result, true);

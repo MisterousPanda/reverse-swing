@@ -44,11 +44,16 @@
           <label>CLOCK</label>
           <b id="clock">1.00×</b>
         </div>
+        <div class="obj">
+          <label>OBJECTIVE</label>
+          <b id="objective">Aim · seam · bowl</b>
+        </div>
       </div>
+      <button id="mute" type="button" class="mute">SOUND ON</button>
     </header>
 
     <main class="match">
-      <aside class="card ball-card">
+      <aside class="card ball-card compact">
         <h2>The ball</h2>
         <div id="ball-viz" class="ball-viz" data-side="off" aria-hidden="true"></div>
         <div class="chips" id="ball-presets">
@@ -82,6 +87,11 @@
 
       <section class="ground">
         <canvas id="stage" tabindex="0"></canvas>
+        <ol class="coach">
+          <li>Aim line &amp; length</li>
+          <li>Set seam / wrist</li>
+          <li>Bowl</li>
+        </ol>
         <div id="call" class="call" hidden>
           <em id="call-kind">BOWLED</em>
           <span id="call-sub">middle stump</span>
@@ -105,9 +115,9 @@
         </div>
       </section>
 
-      <aside class="card bowl-card">
+      <aside class="card bowl-card compact">
         <h2>Delivery</h2>
-        <p class="hint">Line is off / middle / leg. Length is the bounce you can see.</p>
+        <p class="hint">Line = off / middle / leg. Length = bounce you can see.</p>
         <div class="chips" id="length-chips">
           <button type="button" data-length="0.55">Yorker</button>
           <button type="button" data-length="2.6">Full</button>
@@ -174,6 +184,7 @@
     </section>
 
     <script src="/js/engine.js"></script>
+    <script src="/js/audio.js"></script>
     <script src="/js/render.js"></script>
     <script src="/js/game.js"></script>
   </body>

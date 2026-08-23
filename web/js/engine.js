@@ -187,6 +187,8 @@
       this._right = new Vector3(1, 0, 0);
       this._up = new Vector3(0, 0, 1);
       this._forward = new Vector3(0, 1, 0);
+      this.shakeX = 0;
+      this.shakeY = 0;
     }
     lookAt(x, y, z) {
       this.lookTarget.set(x, y, z);
@@ -217,8 +219,8 @@
       const focal = (0.5 * this.viewport.height) / Math.tan((this.fov * Math.PI) / 360);
       const scale = focal / cz;
       return {
-        x: this.viewport.width * 0.5 + cx * scale,
-        y: this.viewport.height * 0.42 - cy * scale,
+        x: this.viewport.width * 0.5 + cx * scale + this.shakeX,
+        y: this.viewport.height * 0.46 - cy * scale + this.shakeY,
         depth: cz,
         scale,
         visible: true,
